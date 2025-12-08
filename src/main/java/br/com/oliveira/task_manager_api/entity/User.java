@@ -1,4 +1,4 @@
-package com.camylla.taskmanager.entity;
+package br.com.oliveira.task_manager_api.entity;
 
 import jakarta.persistence.*;
 import lombok.Data;

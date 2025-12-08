@@ -1,18 +1,24 @@
 package br.com.oliveira.task_manager_api.dto;
 
 import br.com.oliveira.task_manager_api.entity.User;
+import lombok.AllArgsConstructor;
 import lombok.Data;
 
 @Data
+@AllArgsConstructor
 public class UserResponseDTO {
     private Long id;
-    private String username;
+    private String firstName;
+    private String lastName;
+    private String email;
 
-    // metodo para converter Entity -> DTO rapidinho 
+    // Um método estático para facilitar a conversão de Entity -> DTO
     public static UserResponseDTO fromEntity(User user) {
-        UserResponseDTO dto = new UserResponseDTO();
-        dto.setId(user.getId());
-        dto.setUsername(user.getUsername());
-        return dto;
+        return new UserResponseDTO(
+            user.getId(),
+            user.getFirstName(),
+            user.getLastName(),
+            user.getEmail()
+        );
     }
 }

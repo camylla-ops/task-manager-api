@@ -7,28 +7,30 @@ import br.com.oliveira.task_manager_api.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-@Service // Diz pro Spring que aqui tem Regra de Negócio
-@RequiredArgsConstructor // O Lombok cria o construtor pra injetar o Repository
+@Service
+@RequiredArgsConstructor
 public class UserService {
 
     private final UserRepository userRepository;
 
     public UserResponseDTO createUser(CreateUserDTO dto) {
-        // 1. Verificar se o usuário já existe
-        if (userRepository.findByUsername(dto.getUsername()).isPresent()) {
-            throw new RuntimeException("Este username já está em uso!");
+        
+        // 1. Verificar se o usuário já existe (pelo EMAIL, não username)
+        if (userRepository.findByEmail(dto.getEmail()).isPresent()) {
+            throw new RuntimeException("Este email já está em uso!");
         }
 
-        // 2. Converter DTO (Caixa) para Entity (Objeto Real)
+        // 2. Converter DTO para Entity
         User newUser = new User();
-        newUser.setUsername(dto.getUsername());
-        newUser.setPassword(dto.getPassword()); 
-        // Nota: Aqui entra a criptografia depois!
+        newUser.setFirstName(dto.getFirstName());
+        newUser.setLastName(dto.getLastName());
+        newUser.setEmail(dto.getEmail());
+        // (Sem senha por enquanto, conforme o tutorial novo)
 
-        // 3. Salvar no Banco de Dados
+        // 3. Salvar no Banco
         User savedUser = userRepository.save(newUser);
 
-        // 4. Converter o salvo de volta para DTO (pra devolver pro usuário sem senha)
+        // 4. Converter de volta para DTO de resposta
         return UserResponseDTO.fromEntity(savedUser);
     }
 }
