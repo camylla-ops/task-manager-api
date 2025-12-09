@@ -9,10 +9,10 @@ import java.util.List;
 public interface TaskRepository extends JpaRepository<Task, Long> {
 
     // Método Busca Tarefas por ID do Dono
-    List<Task> findByOwnerID(Long ownerId);
+    List<Task> findByOwnerId(Long ownerId);
 
     // Método Busca Tarefas por ID do Participante
-    List<Task> findByParticipantsID(Long participantId);
+    List<Task> findByParticipantsId(Long participantId);
 
     // Método Busca Tarefas onde o Usuário é Dono ou Participante
     List<Task> findByOwnerIdOrParticipantsId(Long ownerId, Long participantId);

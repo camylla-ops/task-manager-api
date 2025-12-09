@@ -1,5 +1,6 @@
 package br.com.oliveira.task_manager_api.entity;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -10,6 +11,7 @@ import lombok.Data;
 @Entity
 @Table(name = "tasks")
 @Data
+
 public class Task {
 
     @Id
@@ -24,6 +26,13 @@ public class Task {
 
     @Enumerated(EnumType.STRING) // Armazena o nome do enum no banco
     private TaskStatus status; // to do, doing, done
+
+
+    
+    private LocalDateTime dueDate; // Para resolver o getDueDate()
+    
+    private boolean isPublic;      // Para resolver o isPublic()
+    
 
    
     @ManyToOne // Muitas Tarefas pertencem a Um Usuário
