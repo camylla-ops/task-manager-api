@@ -1,5 +1,8 @@
 package br.com.oliveira.task_manager_api.entity;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import br.com.oliveira.task_manager_api.enums.TaskStatus;
 import jakarta.persistence.*;
 import lombok.Data;
@@ -20,10 +23,21 @@ public class Task {
     private String description;
 
     @Enumerated(EnumType.STRING) // Armazena o nome do enum no banco
-    private TaskStatus status;
+    private TaskStatus status; // to do, doing, done
 
    
     @ManyToOne // Muitas Tarefas pertencem a Um Usuário
-    @JoinColumn(name = "user_id", nullable = false) // Cria a coluna 'user_id' no banco
-    private User user;
+    @JoinColumn (name = "owner_id")
+    private User owner;
+
+    @ManyToMany // Muitas Tarefas podem ter Muitos Colaboradores
+    @JoinTable(
+
+        name = "task_participants",
+        joinColumns = @JoinColumn(name = "task_id"),
+        inverseJoinColumns = @JoinColumn(name = "user_id"))
+        private List<User> participants = new ArrayList<>();
+    
+
+
 }
