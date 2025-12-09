@@ -7,6 +7,10 @@ import br.com.oliveira.task_manager_api.entity.User;
 import br.com.oliveira.task_manager_api.repository.TaskRepository;
 import br.com.oliveira.task_manager_api.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+
+import java.util.List;
+import java.util.stream.Collectors;
+
 import org.springframework.stereotype.Service;
 
 @Service
@@ -16,10 +20,10 @@ public class TaskService {
     private final TaskRepository taskRepository;
     private final UserRepository userRepository; 
 
-    // Note que agora recebemos o DTO da tarefa E o ID do dono
+    
     public TaskResponseDTO createTask(CreateTaskDTO dto, Long ownerId) {
         
-        // 1. Validar se o Dono existe (Diferente do User, que checava duplicidade)
+        // 1. Buscar o Dono da Tarefa no Banco
         User owner = userRepository.findById(ownerId)
                 .orElseThrow(() -> new RuntimeException("Usuário não encontrado com ID: " + ownerId));
 
@@ -40,4 +44,18 @@ public class TaskService {
         // 5. Converter de volta para DTO (Igual ao UserService)
         return TaskResponseDTO.fromEntity(savedTask);
     }
+
+
+     public List<TaskResponseDTO> listTaskByUserId(long userId) {
+       
+    
+        // 1. Busca no repositório todas as tarefas onde o usuário é Dono OU Participante.
+        List<Task> tasks = taskRepository.findByOwnerIdOrParticipantsId(userId, userId);
+
+        // 2. Mapeia (converte) a lista de Entidades (Task) para a lista de DTOs (TaskResponseDTO)
+         return tasks.stream()
+            .map(TaskResponseDTO::fromEntity) // Chame o método estático de conversão do DTO
+            .collect(Collectors.toList());
+    }
+
 }
