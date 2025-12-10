@@ -2,6 +2,7 @@ package br.com.oliveira.task_manager_api.service;
 
 import br.com.oliveira.task_manager_api.dto.CreateTaskDTO;
 import br.com.oliveira.task_manager_api.dto.TaskResponseDTO;
+import br.com.oliveira.task_manager_api.dto.UpdateStatusDTO;
 import br.com.oliveira.task_manager_api.entity.Task;
 import br.com.oliveira.task_manager_api.entity.User;
 import br.com.oliveira.task_manager_api.repository.TaskRepository;
@@ -11,7 +12,9 @@ import lombok.RequiredArgsConstructor;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 @Service
 @RequiredArgsConstructor
@@ -57,5 +60,26 @@ public class TaskService {
             .map(TaskResponseDTO::fromEntity) // Chame o método estático de conversão do DTO
             .collect(Collectors.toList());
     }
+
+    public TaskResponseDTO updateTaskStatus(Long taskId, UpdateStatusDTO dto) {
+    
+    // 1. Busca a tarefa pelo ID ou lança erro 404
+    Task task = taskRepository.findById(taskId)
+        .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Tarefa não encontrada."));
+
+    // 2. REGRA DE NEGÓCIO: Autorização (Só o dono pode mudar o status)
+    if (!task.getOwner().getId().equals(dto.getUserId())) {
+        throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Apenas o dono pode atualizar o status desta tarefa.");
+    }
+    
+    // 3. Atualiza o status
+    task.setStatus(dto.getStatus());
+
+    // 4. Salva no banco (o JPA atualiza o que já existe)
+    Task updatedTask = taskRepository.save(task);
+
+    // 5. Retorna o DTO de resposta
+    return TaskResponseDTO.fromEntity(updatedTask);
+   }
 
 }

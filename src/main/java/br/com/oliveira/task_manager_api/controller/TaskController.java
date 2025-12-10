@@ -2,7 +2,9 @@ package br.com.oliveira.task_manager_api.controller;
 
 import br.com.oliveira.task_manager_api.dto.CreateTaskDTO;
 import br.com.oliveira.task_manager_api.dto.TaskResponseDTO;
+import br.com.oliveira.task_manager_api.dto.UpdateStatusDTO;
 import br.com.oliveira.task_manager_api.service.TaskService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 import java.util.List;
@@ -45,6 +47,18 @@ public class TaskController {
         return ResponseEntity.ok(tasks);
     }
     
+    // PATCH http://localhost:8080/tasks/{taskId}
+    @PatchMapping("/{taskId}")
+    public ResponseEntity<TaskResponseDTO> updateStatus(
+            @PathVariable Long taskId, // Pega o ID da tarefa na URL
+            @Valid @RequestBody UpdateStatusDTO dto // Pega o status e o userId do corpo
+    ) {
+        // 1. Chama o Service para aplicar a lógica
+        TaskResponseDTO updatedTask = taskService.updateTaskStatus(taskId, dto);
+        
+        // 2. Retorna 200 OK com a tarefa atualizada
+        return ResponseEntity.ok(updatedTask);
+    }
 
 
 }
