@@ -1,6 +1,8 @@
 package br.com.oliveira.task_manager_api.repository;
 
 import br.com.oliveira.task_manager_api.entity.Task;
+import br.com.oliveira.task_manager_api.enums.TaskStatus;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -32,5 +34,12 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
        "OR p.id = :userId " + // COMPARA o ID do usuário (p.id) com o ID passado (:userId)
        "GROUP BY t.id") // Garante que cada tarefa seja retornada apenas uma vez
     List<Task> findAccessibleTasksByUserId(@Param("userId") Long userId);
+
+
+    List<Task> findByOwnerIdAndStatusAndDueDateGreaterThanEqual(
+    Long ownerId, 
+    TaskStatus status, 
+    LocalDateTime dueDate
+);
 
 }

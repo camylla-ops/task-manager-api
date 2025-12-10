@@ -5,10 +5,12 @@ import br.com.oliveira.task_manager_api.dto.TaskResponseDTO;
 import br.com.oliveira.task_manager_api.dto.UpdateStatusDTO;
 import br.com.oliveira.task_manager_api.entity.Task;
 import br.com.oliveira.task_manager_api.entity.User;
+import br.com.oliveira.task_manager_api.enums.TaskStatus;
 import br.com.oliveira.task_manager_api.repository.TaskRepository;
 import br.com.oliveira.task_manager_api.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -30,7 +32,7 @@ public class TaskService {
         User owner = userRepository.findById(ownerId)
                 .orElseThrow(() -> new RuntimeException("Usuário não encontrado com ID: " + ownerId));
 
-        // 
+        checkAgendaConflict(ownerId, dto.getDueDate(), dto.getStatus(), null);
 
         // 2. Converter DTO para Entity
         Task newTask = new Task();
@@ -54,7 +56,7 @@ public class TaskService {
     public List<TaskResponseDTO> listTaskByUserId(long userId) {
 
         // 1. BUSCA CORRETA: Tarefas onde o usuário é Dono OU Pública OU Participante.
-        List<Task> tasks = taskRepository.findAccessibleTasksByUserId(userId); // <--- MÉTODO NOVO
+        List<Task> tasks = taskRepository.findAccessibleTasksByUserId(userId);
 
         // 2. Mapeia (converte) a lista de Entidades (Task) para a lista de DTOs (TaskResponseDTO)
         return tasks.stream()
@@ -73,7 +75,7 @@ public class TaskService {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Apenas o dono pode atualizar o status desta tarefa.");
         }
         
-        // 
+        checkAgendaConflict(task.getOwner().getId(), task.getDueDate(), dto.getStatus(), taskId);
 
         // 3. Atualiza o status
         task.setStatus(dto.getStatus());
@@ -135,7 +137,7 @@ public class TaskService {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Apenas o dono pode atualizar os detalhes desta tarefa.");
         }
 
-        // 
+        checkAgendaConflict(userId, dto.getDueDate(), dto.getStatus(), taskId);
 
         // 3. Atualiza TODOS os campos com os dados do DTO
         task.setTitle(dto.getTitle());
@@ -150,4 +152,30 @@ public class TaskService {
         // 5. Retorna o DTO de resposta
         return TaskResponseDTO.fromEntity(updatedTask);
     }
+
+    private void checkAgendaConflict(Long ownerId, LocalDateTime newDueDate, TaskStatus newStatus, Long currentTaskId) {
+        //Esta regra só se aplica se o status for 'DOING'
+        if (newStatus != TaskStatus.DOING) {
+            return;
+        }
+
+    // 1. Define o ponto de corte para a busca de conflito (pode ser DOING ou DONE)
+    // Usaremos DOING para simplificar, mas em cenários reais, DONE também poderia ser checado.
+    TaskStatus statusToCheck = TaskStatus.DOING;
+
+    // 2. Busca todas as tarefas DOING que se sobrepõem na agenda
+    List<Task> conflictingTasks = taskRepository.findByOwnerIdAndStatusAndDueDateGreaterThanEqual(
+        ownerId,
+        statusToCheck,
+        newDueDate
+    );
+
+    // 3. Se a lista não estiver vazia, há conflito.
+    if (!conflictingTasks.isEmpty()) {
+        // Lança 400 Bad Request, impedindo a operação
+        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, 
+            "Conflito de agenda: Você já tem uma tarefa em andamento (DOING) com data de vencimento sobreposta."
+        );
+    }
+}
 }
