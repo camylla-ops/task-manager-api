@@ -71,4 +71,15 @@ public class TaskController {
         taskService.deleteTask(taskId, userId);
     }
 
+        @GetMapping("/{taskId}")
+    public ResponseEntity<TaskResponseDTO> getById(
+        @PathVariable Long taskId, // Pega o ID da tarefa da URL
+        @RequestParam Long userId  // Pega o ID do usuário para checagem de visibilidade
+    ) {
+        // Chama o Service para buscar a tarefa com a validação de visibilidade
+        TaskResponseDTO task = taskService.getTaskById(taskId, userId);
+        
+        return ResponseEntity.ok(task);
+}
+
 }

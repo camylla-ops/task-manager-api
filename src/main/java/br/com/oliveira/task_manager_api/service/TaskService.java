@@ -96,4 +96,31 @@ public class TaskService {
         taskRepository.delete(task);
     } 
 
+    public TaskResponseDTO getTaskById(Long taskId, Long userId) {
+
+    // 1. Busca a tarefa pelo ID ou lança erro 404
+    Task task = taskRepository.findById(taskId)
+        .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Tarefa não encontrada."));
+
+    // 2. REGRA DE VISIBILIDADE:
+    // O usuário só pode ver a tarefa se:
+    // a) for o Dono, OU
+    // b) a tarefa for Pública, OU
+    // c) o usuário for um Participante.
+    
+    boolean isOwner = task.getOwner().getId().equals(userId);
+    boolean isPublic = task.isPublic();
+    // NOTA: A validação de Participante (participants.contains(userId)) 
+    // será adicionada quando implementarmos a lista de participantes na entidade Task. 
+    // Por enquanto, focamos em Dono e Pública.
+    
+    if (!isOwner && !isPublic) {
+        // Se não é dono E não é pública, bloqueia o acesso (403 Forbidden)
+        throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Você não tem permissão para visualizar esta tarefa.");
+    }
+    
+    // 3. Converte e retorna
+    return TaskResponseDTO.fromEntity(task);
+}
+
 }
