@@ -30,7 +30,9 @@ public class TaskService {
         User owner = userRepository.findById(ownerId)
                 .orElseThrow(() -> new RuntimeException("Usuário não encontrado com ID: " + ownerId));
 
-        // 2. Converter DTO para Entity (Igual ao UserService)
+        // 
+
+        // 2. Converter DTO para Entity
         Task newTask = new Task();
         newTask.setTitle(dto.getTitle());
         newTask.setDescription(dto.getDescription());
@@ -38,48 +40,50 @@ public class TaskService {
         newTask.setStatus(dto.getStatus());
         newTask.setPublic(dto.isPublic());
         
-        // 3. Vincular o Dono à Tarefa (O passo extra!)
+        // 3. Vincular o Dono à Tarefa
         newTask.setOwner(owner);
 
         // 4. Salvar no Banco
         Task savedTask = taskRepository.save(newTask);
 
-        // 5. Converter de volta para DTO (Igual ao UserService)
+        // 5. Converter de volta para DTO
         return TaskResponseDTO.fromEntity(savedTask);
     }
 
 
     public List<TaskResponseDTO> listTaskByUserId(long userId) {
 
-    // 1. Busca no repositório tarefas onde o usuário é Dono OU a tarefa é Pública.
-      List<Task> tasks = taskRepository.findByOwnerIdOrIsPublicTrue(userId);
+        // 1. BUSCA CORRETA: Tarefas onde o usuário é Dono OU Pública OU Participante.
+        List<Task> tasks = taskRepository.findAccessibleTasksByUserId(userId); // <--- MÉTODO NOVO
 
-     // 2. Mapeia (converte) a lista de Entidades (Task) para a lista de DTOs (TaskResponseDTO)
-       return tasks.stream()
-      .map(TaskResponseDTO::fromEntity) 
-      .collect(Collectors.toList());
- }
-
-      public TaskResponseDTO updateTaskStatus(Long taskId, UpdateStatusDTO dto) {
-    
-    // 1. Busca a tarefa pelo ID ou lança erro 404
-    Task task = taskRepository.findById(taskId)
-        .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Tarefa não encontrada."));
-
-    // 2. REGRA DE NEGÓCIO: Autorização (Só o dono pode mudar o status)
-    if (!task.getOwner().getId().equals(dto.getUserId())) {
-        throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Apenas o dono pode atualizar o status desta tarefa.");
+        // 2. Mapeia (converte) a lista de Entidades (Task) para a lista de DTOs (TaskResponseDTO)
+        return tasks.stream()
+        .map(TaskResponseDTO::fromEntity) 
+        .collect(Collectors.toList());
     }
+
+    public TaskResponseDTO updateTaskStatus(Long taskId, UpdateStatusDTO dto) {
     
-    // 3. Atualiza o status
-    task.setStatus(dto.getStatus());
+        // 1. Busca a tarefa pelo ID ou lança erro 404
+        Task task = taskRepository.findById(taskId)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Tarefa não encontrada."));
 
-    // 4. Salva no banco (o JPA atualiza o que já existe)
-    Task updatedTask = taskRepository.save(task);
+        // 2. REGRA DE NEGÓCIO: Autorização (Só o dono pode mudar o status)
+        if (!task.getOwner().getId().equals(dto.getUserId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Apenas o dono pode atualizar o status desta tarefa.");
+        }
+        
+        // 
 
-    // 5. Retorna o DTO de resposta
-    return TaskResponseDTO.fromEntity(updatedTask);
-   }
+        // 3. Atualiza o status
+        task.setStatus(dto.getStatus());
+
+        // 4. Salva no banco (o JPA atualiza o que já existe)
+        Task updatedTask = taskRepository.save(task);
+
+        // 5. Retorna o DTO de resposta
+        return TaskResponseDTO.fromEntity(updatedTask);
+    }
 
     public void deleteTask(Long taskId, Long userId) {
         // 1. Busca a tarefa ou lança erro 404
@@ -97,54 +101,53 @@ public class TaskService {
 
     public TaskResponseDTO getTaskById(Long taskId, Long userId) {
 
-    // 1. Busca a tarefa pelo ID ou lança erro 404
-    Task task = taskRepository.findById(taskId)
-        .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Tarefa não encontrada."));
+        // 1. Busca a tarefa pelo ID ou lança erro 404
+        Task task = taskRepository.findById(taskId)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Tarefa não encontrada."));
 
-    // 2. REGRA DE VISIBILIDADE:
-    // O usuário só pode ver a tarefa se:
-    // a) for o Dono, OU
-    // b) a tarefa for Pública, OU
-    // c) o usuário for um Participante.
-    
-    boolean isOwner = task.getOwner().getId().equals(userId);
-    boolean isPublic = task.isPublic();
-    // NOTA: A validação de Participante (participants.contains(userId)) 
-    // será adicionada quando implementarmos a lista de participantes na entidade Task. 
-    // Por enquanto, focamos em Dono e Pública.
-    
-    if (!isOwner && !isPublic) {
-        // Se não é dono E não é pública, bloqueia o acesso (403 Forbidden)
-        throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Você não tem permissão para visualizar esta tarefa.");
-    }
-    
-    // 3. Converte e retorna
-    return TaskResponseDTO.fromEntity(task);
+        // 2. REGRA DE VISIBILIDADE COMPLETA:
+        // O usuário só pode ver a tarefa se for Dono, Pública OU Participante.
+        
+        boolean isOwner = task.getOwner().getId().equals(userId);
+        boolean isPublic = task.isPublic();
+        
+        // NOVO CRITÉRIO: Checa se o usuário está na lista de participantes
+        boolean isParticipant = task.getParticipants().stream()
+            .anyMatch(p -> p.getId().equals(userId)); 
+        
+        // Se NÃO é dono E NÃO é pública E NÃO é participante, bloqueia o acesso (403 Forbidden)
+        if (!isOwner && !isPublic && !isParticipant) { 
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Você não tem permissão para visualizar esta tarefa.");
+        }
+        
+        // 3. Converte e retorna
+        return TaskResponseDTO.fromEntity(task);
     }
 
     public TaskResponseDTO updateTask(Long taskId, CreateTaskDTO dto, Long userId) {
     
-    // 1. Busca a tarefa ou lança 404
-     Task task = taskRepository.findById(taskId)
-        .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Tarefa não encontrada."));
+        // 1. Busca a tarefa ou lança 404
+        Task task = taskRepository.findById(taskId)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Tarefa não encontrada."));
 
-    // 2. REGRA DE NEGÓCIO: Autorização (403 Forbidden se não for dono)
-     if (!task.getOwner().getId().equals(userId)) {
-        throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Apenas o dono pode atualizar os detalhes desta tarefa.");
-     }
+        // 2. REGRA DE NEGÓCIO: Autorização (403 Forbidden se não for dono)
+        if (!task.getOwner().getId().equals(userId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Apenas o dono pode atualizar os detalhes desta tarefa.");
+        }
 
-    // 3. Atualiza TODOS os campos com os dados do DTO
-    task.setTitle(dto.getTitle());
-    task.setDescription(dto.getDescription());
-    task.setDueDate(dto.getDueDate());
-    task.setStatus(dto.getStatus());
-    task.setPublic(dto.isPublic());
-    
-    // 4. Salva no banco
-    Task updatedTask = taskRepository.save(task);
+        // 
 
-    // 5. Retorna o DTO de resposta
-    return TaskResponseDTO.fromEntity(updatedTask);
+        // 3. Atualiza TODOS os campos com os dados do DTO
+        task.setTitle(dto.getTitle());
+        task.setDescription(dto.getDescription());
+        task.setDueDate(dto.getDueDate());
+        task.setStatus(dto.getStatus());
+        task.setPublic(dto.isPublic());
+        
+        // 4. Salva no banco
+        Task updatedTask = taskRepository.save(task);
+
+        // 5. Retorna o DTO de resposta
+        return TaskResponseDTO.fromEntity(updatedTask);
     }
-
 }
