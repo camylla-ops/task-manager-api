@@ -60,5 +60,15 @@ public class TaskController {
         return ResponseEntity.ok(updatedTask);
     }
 
+    // DELETE http://localhost:8080/tasks/{taskId}?userId=2
+    @DeleteMapping("/{taskId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT) // Retorna 204 No Content se for sucesso
+    public void delete(
+        @PathVariable Long taskId, // Pega o ID da tarefa na URL
+        @RequestParam Long userId  // Pega o ID do usuário que está deletando
+    ) {
+        // Chama o Service para executar a lógica de deleção
+        taskService.deleteTask(taskId, userId);
+    }
 
 }

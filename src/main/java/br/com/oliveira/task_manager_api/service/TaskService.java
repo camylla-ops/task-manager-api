@@ -61,7 +61,7 @@ public class TaskService {
             .collect(Collectors.toList());
     }
 
-    public TaskResponseDTO updateTaskStatus(Long taskId, UpdateStatusDTO dto) {
+      public TaskResponseDTO updateTaskStatus(Long taskId, UpdateStatusDTO dto) {
     
     // 1. Busca a tarefa pelo ID ou lança erro 404
     Task task = taskRepository.findById(taskId)
@@ -81,5 +81,19 @@ public class TaskService {
     // 5. Retorna o DTO de resposta
     return TaskResponseDTO.fromEntity(updatedTask);
    }
+
+    public void deleteTask(Long taskId, Long userId) {
+        // 1. Busca a tarefa ou lança erro 404
+        Task task = taskRepository.findById(taskId)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Tarefa não encontrada."));
+
+        // 2. REGRA DE NEGÓCIO: Autorização (Só o dono pode deletar)
+        if (!task.getOwner().getId().equals(userId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Apenas o dono pode deletar esta tarefa."); // Lança 403
+        }
+
+        // 3. Executar a remoção
+        taskRepository.delete(task);
+    } 
 
 }
