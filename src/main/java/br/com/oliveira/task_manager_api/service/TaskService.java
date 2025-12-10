@@ -121,6 +121,31 @@ public class TaskService {
     
     // 3. Converte e retorna
     return TaskResponseDTO.fromEntity(task);
-}
+    }
+
+    public TaskResponseDTO updateTask(Long taskId, CreateTaskDTO dto, Long userId) {
+    
+    // 1. Busca a tarefa ou lança 404
+    Task task = taskRepository.findById(taskId)
+        .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Tarefa não encontrada."));
+
+    // 2. REGRA DE NEGÓCIO: Autorização (403 Forbidden se não for dono)
+    if (!task.getOwner().getId().equals(userId)) {
+        throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Apenas o dono pode atualizar os detalhes desta tarefa.");
+    }
+
+    // 3. Atualiza TODOS os campos com os dados do DTO
+    task.setTitle(dto.getTitle());
+    task.setDescription(dto.getDescription());
+    task.setDueDate(dto.getDueDate());
+    task.setStatus(dto.getStatus());
+    task.setPublic(dto.isPublic());
+    
+    // 4. Salva no banco
+    Task updatedTask = taskRepository.save(task);
+
+    // 5. Retorna o DTO de resposta
+    return TaskResponseDTO.fromEntity(updatedTask);
+    }
 
 }

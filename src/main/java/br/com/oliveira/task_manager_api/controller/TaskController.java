@@ -70,8 +70,9 @@ public class TaskController {
         // Chama o Service para executar a lógica de deleção
         taskService.deleteTask(taskId, userId);
     }
-
-        @GetMapping("/{taskId}")
+    
+    // GET
+    @GetMapping("/{taskId}")
     public ResponseEntity<TaskResponseDTO> getById(
         @PathVariable Long taskId, // Pega o ID da tarefa da URL
         @RequestParam Long userId  // Pega o ID do usuário para checagem de visibilidade
@@ -80,6 +81,18 @@ public class TaskController {
         TaskResponseDTO task = taskService.getTaskById(taskId, userId);
         
         return ResponseEntity.ok(task);
-}
+    }
+
+    // ENDPOINT: PUT http://localhost:8080/tasks/{taskId}?userId=2
+    @PutMapping("/{taskId}")
+    public ResponseEntity<TaskResponseDTO> update(
+        @PathVariable Long taskId, // ID da tarefa
+        @RequestParam Long userId,  // ID do usuário para autorização
+        @Valid @RequestBody CreateTaskDTO dto // Novos dados validados
+    ) {
+        TaskResponseDTO updatedTask = taskService.updateTask(taskId, dto, userId);
+        return ResponseEntity.ok(updatedTask);
+    }
+
 
 }
