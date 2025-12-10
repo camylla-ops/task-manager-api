@@ -1,4 +1,5 @@
 package br.com.oliveira.task_manager_api.dto;
+import br.com.oliveira.task_manager_api.dto.TaskResponseDTO;
 
 import java.time.LocalDateTime;
 import br.com.oliveira.task_manager_api.entity.Task;
@@ -6,6 +7,7 @@ import br.com.oliveira.task_manager_api.enums.TaskStatus;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
 
 @Data
 @AllArgsConstructor

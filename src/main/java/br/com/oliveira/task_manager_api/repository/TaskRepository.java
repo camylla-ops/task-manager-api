@@ -17,6 +17,8 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
     // Método Busca Tarefas onde o Usuário é Dono ou Participante
     List<Task> findByOwnerIdOrParticipantsId(Long ownerId, Long participantId);
 
+    List<Task> findByOwnerIdOrIsPublicTrue(Long userId);
+
     // Método Busca Tarefas por Data de Vencimento
     List<Task> findByDueDate(LocalDateTime dueDate);
 

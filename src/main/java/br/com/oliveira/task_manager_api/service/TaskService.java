@@ -49,17 +49,16 @@ public class TaskService {
     }
 
 
-     public List<TaskResponseDTO> listTaskByUserId(long userId) {
-       
-    
-        // 1. Busca no repositório todas as tarefas onde o usuário é Dono OU Participante.
-        List<Task> tasks = taskRepository.findByOwnerIdOrParticipantsId(userId, userId);
+    public List<TaskResponseDTO> listTaskByUserId(long userId) {
 
-        // 2. Mapeia (converte) a lista de Entidades (Task) para a lista de DTOs (TaskResponseDTO)
-         return tasks.stream()
-            .map(TaskResponseDTO::fromEntity) // Chame o método estático de conversão do DTO
-            .collect(Collectors.toList());
-    }
+    // 1. Busca no repositório tarefas onde o usuário é Dono OU a tarefa é Pública.
+      List<Task> tasks = taskRepository.findByOwnerIdOrIsPublicTrue(userId);
+
+     // 2. Mapeia (converte) a lista de Entidades (Task) para a lista de DTOs (TaskResponseDTO)
+       return tasks.stream()
+      .map(TaskResponseDTO::fromEntity) 
+      .collect(Collectors.toList());
+ }
 
       public TaskResponseDTO updateTaskStatus(Long taskId, UpdateStatusDTO dto) {
     
@@ -126,13 +125,13 @@ public class TaskService {
     public TaskResponseDTO updateTask(Long taskId, CreateTaskDTO dto, Long userId) {
     
     // 1. Busca a tarefa ou lança 404
-    Task task = taskRepository.findById(taskId)
+     Task task = taskRepository.findById(taskId)
         .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Tarefa não encontrada."));
 
     // 2. REGRA DE NEGÓCIO: Autorização (403 Forbidden se não for dono)
-    if (!task.getOwner().getId().equals(userId)) {
+     if (!task.getOwner().getId().equals(userId)) {
         throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Apenas o dono pode atualizar os detalhes desta tarefa.");
-    }
+     }
 
     // 3. Atualiza TODOS os campos com os dados do DTO
     task.setTitle(dto.getTitle());
